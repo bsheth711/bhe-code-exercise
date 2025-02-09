@@ -4,7 +4,8 @@ Primes are cached within the sieve to improve performace of runs within the same
 Note: Correctly setting maxBlockSize is extremely important: too large and you lose caching benefits 
 and may run in to memory issues. Too small and you lose out on CPU optimizations.
 Based on your hardware, you may need to change the value for optimal performance. 
-Currently it is set to the optimal value for my M1 Macbook Air. 
+Currently it is set to the optimal value for my M1 Macbook Air 
+(getting the 100_000_000th prime takes ~12s).
 
 # How To Run
 1. From the repository folder move to the go folder
