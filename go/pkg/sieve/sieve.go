@@ -60,7 +60,7 @@ func (eraSieve EratosthenesSieve) NthPrime(n int64) int64 {
 		for (eraSieve.blockSize < eraSieve.maxBlockSize) &&
 			(eraSieve.blockStart*eraSieve.blockStart > eraSieve.blockStart+nextBlockSize) {
 			eraSieve.blockSize = nextBlockSize
-			nextBlockSize *= 2
+			nextBlockSize <<= 1
 		}
 	}
 
@@ -69,7 +69,7 @@ func (eraSieve EratosthenesSieve) NthPrime(n int64) int64 {
 
 func NewSieve() Sieve {
 	eraSieve := EratosthenesSieve{}
-	eraSieve.primes = make([]int64, 10, 100000)
+	eraSieve.primes = make([]int64, 10, 200000001)
 
 	// seeding the EratosthenesSieve with precalculated values
 	// so segmenting can be used straight away
@@ -89,7 +89,11 @@ func NewSieve() Sieve {
 
 	// starting block size, will expand to maxBlockSize
 	eraSieve.blockSize = 1 << 9
-	eraSieve.maxBlockSize = 1 << 21
+
+	// Note: this is the maximum block size and heavily impacts performance.
+	// May require dialing in based on specifically your hardware, eg. memory, CPU cache sizes
+	// Currently, it is set to the optimal value for my M1 Macbook Air: 100000000 take ~12s
+	eraSieve.maxBlockSize = 1 << 24
 
 	return eraSieve
 }
