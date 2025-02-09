@@ -1,6 +1,8 @@
 package sieve
 
 type Sieve interface {
+	// A function that returns the nth 0-indexed prime number,
+	// where 2 is the first prime number
 	NthPrime(n int64) int64
 }
 
@@ -8,31 +10,36 @@ const startingBlockSize = 1 << 9
 
 // Note: this is the maximum block size and heavily impacts performance.
 // May require dialing in based on specifically your hardware, eg. memory, CPU cache sizes
-// Currently, it is set to the optimal value for my M1 Macbook Air: 100000000 take ~12s
 const maxBlockSize = 1 << 24
 
+// A prime number Sieve implementation using a segmented Eratosthenes algorithm
 type eratosthenesSieve struct {
-	Primes       []int64
-	isNotPrime   []bool
+	primes       []int64
+	isNotPrime   []bool // Marks primes for the current Block
 	blockStart   int64
 	blockSize    int64
 	maxBlockSize int64
 }
 
+// A function that produces the nth 0-indexed prime number,
+// using a segmented Eratosthenes algorithm.
+// Previously computed primes are cached in memory.
+// Numbers less than 0 will return the first prime number, 2.
 func (eraSieve eratosthenesSieve) NthPrime(n int64) int64 {
 	if n < 0 {
 		return 2
 	}
 
-	if n < int64(len(eraSieve.Primes)) {
-		return eraSieve.Primes[n]
+	if n < int64(len(eraSieve.primes)) {
+		return eraSieve.primes[n]
 	}
 
-	for int64(len(eraSieve.Primes))-1 < n {
+	for int64(len(eraSieve.primes))-1 < n {
 
 		blockEnd := eraSieve.blockStart + eraSieve.blockSize
 
-		for _, prime := range eraSieve.Primes {
+		// Marking all multiples of primes within the block as not prime
+		for _, prime := range eraSieve.primes {
 
 			multiplier := eraSieve.blockStart / prime
 
@@ -53,10 +60,11 @@ func (eraSieve eratosthenesSieve) NthPrime(n int64) int64 {
 			}
 		}
 
+		// Adding identified primes to sieve
 		for i := int64(0); i < eraSieve.blockSize; i++ {
 			if !eraSieve.isNotPrime[i] {
 				number := i + eraSieve.blockStart
-				eraSieve.Primes = append(eraSieve.Primes, number)
+				eraSieve.primes = append(eraSieve.primes, number)
 			} else {
 				eraSieve.isNotPrime[i] = false
 			}
@@ -64,8 +72,8 @@ func (eraSieve eratosthenesSieve) NthPrime(n int64) int64 {
 
 		eraSieve.blockStart += eraSieve.blockSize
 
+		// Increasing blockSize if possible
 		nextBlockSize := eraSieve.blockSize * 2
-
 		for (eraSieve.blockSize < eraSieve.maxBlockSize) &&
 			(eraSieve.blockStart*eraSieve.blockStart > eraSieve.blockStart+nextBlockSize) {
 			eraSieve.blockSize = nextBlockSize
@@ -73,26 +81,26 @@ func (eraSieve eratosthenesSieve) NthPrime(n int64) int64 {
 		}
 	}
 
-	return eraSieve.Primes[n]
+	return eraSieve.primes[n]
 }
 
 func NewSieve() Sieve {
 	eraSieve := eratosthenesSieve{}
-	eraSieve.Primes = make([]int64, 10, 100000001)
+	eraSieve.primes = make([]int64, 10, 100_000_000+1)
 	eraSieve.isNotPrime = make([]bool, maxBlockSize)
 
 	// seeding the EratosthenesSieve with precalculated values
 	// so segmenting can be used straight away
-	eraSieve.Primes[0] = 2
-	eraSieve.Primes[1] = 3
-	eraSieve.Primes[2] = 5
-	eraSieve.Primes[3] = 7
-	eraSieve.Primes[4] = 11
-	eraSieve.Primes[5] = 13
-	eraSieve.Primes[6] = 17
-	eraSieve.Primes[7] = 19
-	eraSieve.Primes[8] = 23
-	eraSieve.Primes[9] = 29
+	eraSieve.primes[0] = 2
+	eraSieve.primes[1] = 3
+	eraSieve.primes[2] = 5
+	eraSieve.primes[3] = 7
+	eraSieve.primes[4] = 11
+	eraSieve.primes[5] = 13
+	eraSieve.primes[6] = 17
+	eraSieve.primes[7] = 19
+	eraSieve.primes[8] = 23
+	eraSieve.primes[9] = 29
 
 	// next number to start algorithm at after the last known prime
 	eraSieve.blockStart = 30
