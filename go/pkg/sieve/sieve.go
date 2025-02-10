@@ -35,48 +35,59 @@ func (eraSieve *eratosthenesSieve) NthPrime(n int64) int64 {
 
 		var blockSize int64
 
-		if eraSieve.blockStart*eraSieve.blockStart <= eraSieve.blockStart+eraSieve.maxBlockSize {
-			blockSize = eraSieve.blockStart * eraSieve.blockStart
+		squared := eraSieve.blockStart * eraSieve.blockStart
+
+		if squared <= eraSieve.blockStart+eraSieve.maxBlockSize {
+			blockSize = squared
 		} else {
 			blockSize = eraSieve.maxBlockSize
 		}
 
-		blockEnd := eraSieve.blockStart + blockSize
+		eraSieve.markNonPrimes(blockSize)
 
-		// Marking all multiples of primes within the block as not prime
-		for _, prime := range eraSieve.primes {
-
-			multiplier := eraSieve.blockStart / prime
-			if prime*multiplier < eraSieve.blockStart {
-				multiplier++
-			}
-
-			multiple := prime * multiplier
-
-			for multiple < blockEnd {
-				offset := multiple - eraSieve.blockStart
-
-				eraSieve.isNotPrime[offset] = true
-
-				multiple += prime
-			}
-		}
-
-		// Adding identified primes to sieve
-		for i := int64(0); i < blockSize; i++ {
-			if !eraSieve.isNotPrime[i] {
-				number := i + eraSieve.blockStart
-				eraSieve.primes = append(eraSieve.primes, number)
-			} else {
-				eraSieve.isNotPrime[i] = false
-			}
-		}
+		eraSieve.addPrimes(blockSize)
 
 		eraSieve.blockStart += blockSize
 	}
 
 	return eraSieve.primes[n]
 }
+
+// adds any marked prime numbers to the sieve
+// and resets indices to the default of false
+func (eraSieve *eratosthenesSieve) addPrimes(blockSize int64) {
+	for i := int64(0); i < blockSize; i++ {
+		if !eraSieve.isNotPrime[i] {
+			number := i + eraSieve.blockStart
+			eraSieve.primes = append(eraSieve.primes, number)
+		} else {
+			eraSieve.isNotPrime[i] = false
+		}
+	}
+}
+
+// marks non-prime numbers in the current block of the sieve
+func (eraSieve *eratosthenesSieve) markNonPrimes(blockSize int64) {
+
+	// Marking all multiples of primes within the block as not prime
+	for _, prime := range eraSieve.primes {
+
+		multiplier := eraSieve.blockStart / prime
+		if multiplier*prime < eraSieve.blockStart {
+			multiplier++
+		}
+
+		// prime * multiplier == multiple
+		offset := prime*multiplier - eraSieve.blockStart
+
+		for offset < blockSize {
+			eraSieve.isNotPrime[offset] = true
+			offset += prime
+		}
+	}
+}
+
+var precalculatedPrimes = []int64{2, 3, 5, 7, 11, 13, 17, 19, 23, 29}
 
 func NewSieve() Sieve {
 	eraSieve := eratosthenesSieve{}
@@ -85,20 +96,10 @@ func NewSieve() Sieve {
 
 	// seeding the EratosthenesSieve with precalculated values
 	// so segmenting can be used straight away
-	eraSieve.primes[0] = 2
-	eraSieve.primes[1] = 3
-	eraSieve.primes[2] = 5
-	eraSieve.primes[3] = 7
-	eraSieve.primes[4] = 11
-	eraSieve.primes[5] = 13
-	eraSieve.primes[6] = 17
-	eraSieve.primes[7] = 19
-	eraSieve.primes[8] = 23
-	eraSieve.primes[9] = 29
+	copy(eraSieve.primes, precalculatedPrimes[:])
 
-	// next number to start algorithm at after the last known prime
-	eraSieve.blockStart = 30
-
+	// start algorithm at the number after the last known prime
+	eraSieve.blockStart = precalculatedPrimes[len(precalculatedPrimes)-1] + 1
 	eraSieve.maxBlockSize = maxBlockSize
 
 	return &eraSieve
