@@ -25,7 +25,7 @@ type eratosthenesSieve struct {
 // using a segmented Eratosthenes algorithm.
 // Previously computed primes are cached in memory.
 // Numbers less than 0 will return the first prime number, 2.
-func (eraSieve eratosthenesSieve) NthPrime(n int64) int64 {
+func (eraSieve *eratosthenesSieve) NthPrime(n int64) int64 {
 	if n < 0 {
 		return 2
 	}
@@ -109,5 +109,5 @@ func NewSieve() Sieve {
 	eraSieve.blockSize = startingBlockSize
 	eraSieve.maxBlockSize = maxBlockSize
 
-	return eraSieve
+	return &eraSieve
 }

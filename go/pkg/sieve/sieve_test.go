@@ -7,6 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNthPrimeSame(t *testing.T) {
+	sieve := NewSieve()
+
+	assert.Equal(t, int64(2038074751), sieve.NthPrime(100_000_000)) //not required, just a fun challenge
+	assert.Equal(t, int64(2038074751), sieve.NthPrime(100_000_000)) //not required, just a fun challenge
+}
+
 func TestNthPrimeSmall(t *testing.T) {
 	sieve := NewSieve()
 
