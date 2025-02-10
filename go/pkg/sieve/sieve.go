@@ -1,5 +1,9 @@
 package sieve
 
+import (
+	"sort"
+)
+
 type Sieve interface {
 	// A function that returns the nth 0-indexed prime number,
 	// where 2 is the first prime number
@@ -69,8 +73,14 @@ func (eraSieve *eratosthenesSieve) addPrimes(blockSize int64) {
 // marks non-prime numbers in the current block of the sieve
 func (eraSieve *eratosthenesSieve) markNonPrimes(blockSize int64) {
 
-	// Marking all multiples of primes within the block as not prime
-	for _, prime := range eraSieve.primes {
+	// Finding the index of the max prime we need to check with,
+	// because otherwise a smaller prime would already have been a multiple.
+	// sqrt(blockEnd)
+	argMaxPrime := sort.Search(len(eraSieve.primes), func(i int) bool {
+		return eraSieve.primes[i]*eraSieve.primes[i] > eraSieve.blockStart+blockSize
+	})
+
+	for _, prime := range eraSieve.primes[:argMaxPrime] {
 
 		multiplier := eraSieve.blockStart / prime
 		if multiplier*prime < eraSieve.blockStart {
