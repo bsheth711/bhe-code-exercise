@@ -12,7 +12,7 @@ type Sieve interface {
 
 // Note: this is the maximum block size and heavily impacts performance.
 // May require dialing in based on specifically your hardware, eg. memory, CPU cache sizes
-const maxBlockSize = 1 << 24
+const maxBlockSize = 1 << 17
 
 // A prime number Sieve implementation using a segmented Eratosthenes algorithm
 type eratosthenesSieve struct {
