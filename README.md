@@ -6,7 +6,7 @@ Note: Correctly setting maxBlockSize is extremely important: too large and you l
 and may run in to memory issues. Too small and you lose out on CPU optimizations.
 Based on your hardware, you may need to change the value for optimal performance. 
 Currently it is set to the optimal value for my M1 Macbook Air 
-(getting the 100_000_000th prime takes ~12s).   
+(getting the 100_000_000th prime takes ~5s).   
 
 Note: In multiple places I square one side of an equation to avoid square rooting.
 This runs the risk of integer overflow for very large values, but gives great performance gains.
