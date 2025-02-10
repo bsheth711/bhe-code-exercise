@@ -6,8 +6,6 @@ type Sieve interface {
 	NthPrime(n int64) int64
 }
 
-const startingBlockSize = 1 << 9
-
 // Note: this is the maximum block size and heavily impacts performance.
 // May require dialing in based on specifically your hardware, eg. memory, CPU cache sizes
 const maxBlockSize = 1 << 24
@@ -17,7 +15,6 @@ type eratosthenesSieve struct {
 	primes       []int64
 	isNotPrime   []bool // Marks primes for the current Block
 	blockStart   int64
-	blockSize    int64
 	maxBlockSize int64
 }
 
@@ -36,32 +33,37 @@ func (eraSieve *eratosthenesSieve) NthPrime(n int64) int64 {
 
 	for int64(len(eraSieve.primes))-1 < n {
 
-		blockEnd := eraSieve.blockStart + eraSieve.blockSize
+		var blockSize int64
+
+		if eraSieve.blockStart*eraSieve.blockStart <= eraSieve.blockStart+eraSieve.maxBlockSize {
+			blockSize = eraSieve.blockStart * eraSieve.blockStart
+		} else {
+			blockSize = eraSieve.maxBlockSize
+		}
+
+		blockEnd := eraSieve.blockStart + blockSize
 
 		// Marking all multiples of primes within the block as not prime
 		for _, prime := range eraSieve.primes {
 
 			multiplier := eraSieve.blockStart / prime
+			if prime*multiplier < eraSieve.blockStart {
+				multiplier++
+			}
 
 			multiple := prime * multiplier
-
-			if multiple < eraSieve.blockStart {
-				multiplier++
-				multiple = prime * multiplier
-			}
 
 			for multiple < blockEnd {
 				offset := multiple - eraSieve.blockStart
 
 				eraSieve.isNotPrime[offset] = true
 
-				multiplier++
-				multiple = prime * multiplier
+				multiple += prime
 			}
 		}
 
 		// Adding identified primes to sieve
-		for i := int64(0); i < eraSieve.blockSize; i++ {
+		for i := int64(0); i < blockSize; i++ {
 			if !eraSieve.isNotPrime[i] {
 				number := i + eraSieve.blockStart
 				eraSieve.primes = append(eraSieve.primes, number)
@@ -70,15 +72,7 @@ func (eraSieve *eratosthenesSieve) NthPrime(n int64) int64 {
 			}
 		}
 
-		eraSieve.blockStart += eraSieve.blockSize
-
-		// Increasing blockSize if possible
-		nextBlockSize := eraSieve.blockSize * 2
-		for (eraSieve.blockSize < eraSieve.maxBlockSize) &&
-			(eraSieve.blockStart*eraSieve.blockStart > eraSieve.blockStart+nextBlockSize) {
-			eraSieve.blockSize = nextBlockSize
-			nextBlockSize <<= 1
-		}
+		eraSieve.blockStart += blockSize
 	}
 
 	return eraSieve.primes[n]
@@ -105,8 +99,6 @@ func NewSieve() Sieve {
 	// next number to start algorithm at after the last known prime
 	eraSieve.blockStart = 30
 
-	// starting block size, will expand to maxBlockSize
-	eraSieve.blockSize = startingBlockSize
 	eraSieve.maxBlockSize = maxBlockSize
 
 	return &eraSieve
