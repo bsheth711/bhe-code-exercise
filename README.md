@@ -1,6 +1,6 @@
 # Implementation Details
 I implemented a segmented Eratosthenes Sieve. 
-Primes are cached within the sieve to improve performace of runs within the same context.  
+Primes are cached within the sieve to improve performance of runs within the same context.  
 
 Note: Correctly setting maxBlockSize is extremely important: too large and you lose caching benefits 
 and may run in to memory issues. Too small and you lose out on CPU optimizations.
