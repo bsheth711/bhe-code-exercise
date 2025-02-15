@@ -1,9 +1,5 @@
 package sieve
 
-import (
-	"sort"
-)
-
 type Sieve interface {
 	// A function that returns the nth 0-indexed prime number,
 	// where 2 is the first prime number
@@ -20,6 +16,7 @@ type eratosthenesSieve struct {
 	isNotPrime   []bool // Marks primes for the current Block
 	blockStart   int64
 	maxBlockSize int64
+	argMaxPrime  int64
 }
 
 // A function that produces the nth 0-indexed prime number,
@@ -39,7 +36,9 @@ func (eraSieve *eratosthenesSieve) NthPrime(n int64) int64 {
 
 		var blockSize int64
 
-		squared := eraSieve.blockStart * eraSieve.blockStart
+		lastChecked := eraSieve.blockStart - 1
+
+		squared := lastChecked * lastChecked
 
 		if squared <= eraSieve.blockStart+eraSieve.maxBlockSize {
 			blockSize = squared
@@ -76,11 +75,13 @@ func (eraSieve *eratosthenesSieve) markNonPrimes(blockSize int64) {
 	// Finding the index of the max prime we need to check with,
 	// because otherwise a smaller prime would already have been a multiple.
 	// sqrt(blockEnd)
-	argMaxPrime := sort.Search(len(eraSieve.primes), func(i int) bool {
-		return eraSieve.primes[i]*eraSieve.primes[i] > eraSieve.blockStart+blockSize
-	})
+	blockEnd := eraSieve.blockStart + blockSize
 
-	for _, prime := range eraSieve.primes[:argMaxPrime] {
+	for i := eraSieve.argMaxPrime; i < int64(len(eraSieve.primes)) && eraSieve.primes[i]*eraSieve.primes[i] <= blockEnd; i++ {
+		eraSieve.argMaxPrime = i
+	}
+
+	for _, prime := range eraSieve.primes[:eraSieve.argMaxPrime+1] {
 
 		multiplier := eraSieve.blockStart / prime
 		if multiplier*prime < eraSieve.blockStart {
@@ -111,6 +112,8 @@ func NewSieve() Sieve {
 	// start algorithm at the number after the last known prime
 	eraSieve.blockStart = precalculatedPrimes[len(precalculatedPrimes)-1] + 1
 	eraSieve.maxBlockSize = maxBlockSize
+
+	eraSieve.argMaxPrime = 0
 
 	return &eraSieve
 }
