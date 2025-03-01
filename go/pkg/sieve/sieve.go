@@ -77,11 +77,11 @@ func (eraSieve *eratosthenesSieve) markNonPrimes(blockSize int64) {
 	// sqrt(blockEnd)
 	blockEnd := eraSieve.blockStart + blockSize
 
-	for i := eraSieve.argMaxPrime; i < int64(len(eraSieve.primes)) && eraSieve.primes[i]*eraSieve.primes[i] <= blockEnd; i++ {
-		eraSieve.argMaxPrime = i
+	for eraSieve.argMaxPrime < int64(len(eraSieve.primes)) && eraSieve.primes[eraSieve.argMaxPrime]*eraSieve.primes[eraSieve.argMaxPrime] <= blockEnd {
+		eraSieve.argMaxPrime++
 	}
 
-	for _, prime := range eraSieve.primes[:eraSieve.argMaxPrime+1] {
+	for _, prime := range eraSieve.primes[:eraSieve.argMaxPrime] {
 
 		multiplier := eraSieve.blockStart / prime
 		if multiplier*prime < eraSieve.blockStart {
