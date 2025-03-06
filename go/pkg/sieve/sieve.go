@@ -1,5 +1,10 @@
 package sieve
 
+import (
+	"runtime"
+	"sync"
+)
+
 type Sieve interface {
 	// A function that returns the nth 0-indexed prime number,
 	// where 2 is the first prime number
@@ -81,21 +86,36 @@ func (eraSieve *eratosthenesSieve) markNonPrimes(blockSize int64) {
 		eraSieve.argMaxPrime++
 	}
 
-	for _, prime := range eraSieve.primes[:eraSieve.argMaxPrime] {
+	numThreads := runtime.NumCPU()
+	var wg sync.WaitGroup
+	wg.Add(numThreads)
 
-		multiplier := eraSieve.blockStart / prime
-		if multiplier*prime < eraSieve.blockStart {
-			multiplier++
-		}
+	for i := 0; i < numThreads; i++ {
+		go func(i int) {
+			defer wg.Done()
 
-		// prime * multiplier == multiple
-		offset := prime*multiplier - eraSieve.blockStart
+			for j := int64(i); j < eraSieve.argMaxPrime; j += int64(numThreads) {
+				prime := eraSieve.primes[j]
+				multiplier := eraSieve.blockStart / prime
+				multiple := multiplier * prime
 
-		for offset < blockSize {
-			eraSieve.isNotPrime[offset] = true
-			offset += prime
-		}
+				if multiple < eraSieve.blockStart {
+					multiple += prime
+				}
+
+				offset := multiple - eraSieve.blockStart
+
+				for offset < blockSize {
+					// it is ok if multiple threads access isNotPrime at the same time
+					// since threads are always writing true--no race condition
+					eraSieve.isNotPrime[offset] = true
+					offset += prime
+				}
+			}
+		}(i)
 	}
+
+	wg.Wait()
 }
 
 var precalculatedPrimes = []int64{2, 3, 5, 7, 11, 13, 17, 19, 23, 29}
