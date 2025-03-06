@@ -86,7 +86,10 @@ func (eraSieve *eratosthenesSieve) markNonPrimes(blockSize int64) {
 		eraSieve.argMaxPrime++
 	}
 
-	numThreads := runtime.NumCPU()
+	numThreads := 1
+	if eraSieve.argMaxPrime > int64(runtime.NumCPU()) {
+		numThreads = runtime.NumCPU()
+	}
 	var wg sync.WaitGroup
 	wg.Add(numThreads)
 
@@ -94,7 +97,17 @@ func (eraSieve *eratosthenesSieve) markNonPrimes(blockSize int64) {
 		go func(i int) {
 			defer wg.Done()
 
-			for j := int64(i); j < eraSieve.argMaxPrime; j += int64(numThreads) {
+			batchSize := eraSieve.argMaxPrime / int64(numThreads)
+			start := batchSize * int64(i)
+			stop := batchSize * int64(i+1)
+
+			// adding on any leftover work to the last thread
+			// will always be less than numThreads
+			if i == numThreads-1 {
+				stop += eraSieve.argMaxPrime % batchSize
+			}
+
+			for j := start; j < stop; j++ {
 				prime := eraSieve.primes[j]
 				multiplier := eraSieve.blockStart / prime
 				multiple := multiplier * prime
