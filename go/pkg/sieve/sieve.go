@@ -1,8 +1,7 @@
 package sieve
 
 import (
-	"runtime"
-	"sync"
+	"ssse-exercise-sieve/pkg/parallel"
 )
 
 type Sieve interface {
@@ -65,9 +64,9 @@ func (eraSieve *eratosthenesSieve) NthPrime(n int64) int64 {
 // and resets indices to the default of false
 func (eraSieve *eratosthenesSieve) addPrimes(blockSize int64) {
 
-	newPrimes := make([][]int64, runtime.NumCPU())
+	newPrimes := make([][]int64, parallel.GetNumThreads(int(blockSize)))
 
-	parallelFor(int(blockSize), func(i, threadId int) {
+	parallel.For(int(blockSize), func(i, threadId int) {
 		if !eraSieve.isNotPrime[i] {
 			number := int64(i) + eraSieve.blockStart
 			newPrimes[threadId] = append(newPrimes[threadId], number)
@@ -92,7 +91,7 @@ func (eraSieve *eratosthenesSieve) markNonPrimes(blockSize int64) {
 		eraSieve.argMaxPrime++
 	}
 
-	parallelFor(int(eraSieve.argMaxPrime), func(i, _ int) {
+	parallel.For(int(eraSieve.argMaxPrime), func(i, _ int) {
 		prime := eraSieve.primes[i]
 		multiplier := eraSieve.blockStart / prime
 		multiple := multiplier * prime
@@ -110,38 +109,6 @@ func (eraSieve *eratosthenesSieve) markNonPrimes(blockSize int64) {
 			offset += prime
 		}
 	})
-}
-
-func parallelFor(n int, work func(i, threadId int)) {
-	numThreads := runtime.NumCPU()
-
-	if n < numThreads {
-		numThreads = n
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(numThreads)
-
-	for j := 0; j < numThreads; j++ {
-		go func(threadId int) {
-			defer wg.Done()
-
-			batchSize := n / numThreads
-			start := batchSize * threadId
-			stop := batchSize * (threadId + 1)
-
-			if threadId == numThreads-1 {
-				stop += n % batchSize
-			}
-
-			for k := start; k < stop; k++ {
-				work(k, threadId)
-			}
-
-		}(j)
-	}
-
-	wg.Wait()
 }
 
 var precalculatedPrimes = []int64{2, 3, 5, 7, 11, 13, 17, 19, 23, 29}
