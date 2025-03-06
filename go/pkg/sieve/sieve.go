@@ -64,13 +64,19 @@ func (eraSieve *eratosthenesSieve) NthPrime(n int64) int64 {
 // adds any marked prime numbers to the sieve
 // and resets indices to the default of false
 func (eraSieve *eratosthenesSieve) addPrimes(blockSize int64) {
-	for i := int64(0); i < blockSize; i++ {
+
+	newPrimes := make([][]int64, runtime.NumCPU())
+
+	parallelFor(int(blockSize), func(i, threadId int) {
 		if !eraSieve.isNotPrime[i] {
-			number := i + eraSieve.blockStart
-			eraSieve.primes = append(eraSieve.primes, number)
-		} else {
-			eraSieve.isNotPrime[i] = false
+			number := int64(i) + eraSieve.blockStart
+			newPrimes[threadId] = append(newPrimes[threadId], number)
 		}
+		eraSieve.isNotPrime[i] = false
+	})
+
+	for _, list := range newPrimes {
+		eraSieve.primes = append(eraSieve.primes, list...)
 	}
 }
 
@@ -86,46 +92,53 @@ func (eraSieve *eratosthenesSieve) markNonPrimes(blockSize int64) {
 		eraSieve.argMaxPrime++
 	}
 
-	numThreads := 1
-	if eraSieve.argMaxPrime > int64(runtime.NumCPU()) {
-		numThreads = runtime.NumCPU()
+	parallelFor(int(eraSieve.argMaxPrime), func(i, _ int) {
+		prime := eraSieve.primes[i]
+		multiplier := eraSieve.blockStart / prime
+		multiple := multiplier * prime
+
+		if multiple < eraSieve.blockStart {
+			multiple += prime
+		}
+
+		offset := multiple - eraSieve.blockStart
+
+		for offset < blockSize {
+			// it is ok if multiple threads write to isNotPrime at the same time
+			// since threads are always writing true--no race condition
+			eraSieve.isNotPrime[offset] = true
+			offset += prime
+		}
+	})
+}
+
+func parallelFor(n int, work func(i, threadId int)) {
+	numThreads := runtime.NumCPU()
+
+	if n < numThreads {
+		numThreads = n
 	}
+
 	var wg sync.WaitGroup
 	wg.Add(numThreads)
 
-	for i := 0; i < numThreads; i++ {
-		go func(i int) {
+	for j := 0; j < numThreads; j++ {
+		go func(threadId int) {
 			defer wg.Done()
 
-			batchSize := eraSieve.argMaxPrime / int64(numThreads)
-			start := batchSize * int64(i)
-			stop := batchSize * int64(i+1)
+			batchSize := n / numThreads
+			start := batchSize * threadId
+			stop := batchSize * (threadId + 1)
 
-			// adding on any leftover work to the last thread
-			// will always be less than numThreads
-			if i == numThreads-1 {
-				stop += eraSieve.argMaxPrime % batchSize
+			if threadId == numThreads-1 {
+				stop += n % batchSize
 			}
 
-			for j := start; j < stop; j++ {
-				prime := eraSieve.primes[j]
-				multiplier := eraSieve.blockStart / prime
-				multiple := multiplier * prime
-
-				if multiple < eraSieve.blockStart {
-					multiple += prime
-				}
-
-				offset := multiple - eraSieve.blockStart
-
-				for offset < blockSize {
-					// it is ok if multiple threads access isNotPrime at the same time
-					// since threads are always writing true--no race condition
-					eraSieve.isNotPrime[offset] = true
-					offset += prime
-				}
+			for k := start; k < stop; k++ {
+				work(k, threadId)
 			}
-		}(i)
+
+		}(j)
 	}
 
 	wg.Wait()
