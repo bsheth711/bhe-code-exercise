@@ -12,6 +12,15 @@ Note: In multiple places I square one side of an equation to avoid square rootin
 This runs the risk of integer overflow for very large values, but gives great performance gains.
 As such, the program will only work for primes below ~3 billion.
 
+# A Note On Multithreading
+I implemented multithreading on the branch feature-bsheth-multithreading. 
+The results of multithreading are variable. On my Windows Desktop, multithreading has a beneficial impact (~200-500ms). 
+However on my M1 Macbook Air, multithreading has no impact or a slightly negative impact. 
+This is likely due differences in compilation and architecture between the two systems. 
+Of course when thinking about optimization and multithreading, it is important to think about your target system 
+and test, test, test to ensure you are getting the results you expect. 
+In any case, the algorithm I am using is already likely to close to memory bounded--ie. limited by the speed of memory accesses.
+
 # How To Run
 1. From the repository folder move to the go folder
 ```
