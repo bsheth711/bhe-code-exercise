@@ -104,7 +104,7 @@ func (eraSieve *eratosthenesSieve) markNonPrimes(blockSize int64) {
 
 		for offset < blockSize {
 			// it is ok if multiple threads write to isNotPrime at the same time
-			// since threads are always writing true--no race condition
+			// since threads are always writing true--"benign" race condition
 			eraSieve.isNotPrime[offset] = true
 			offset += prime
 		}
