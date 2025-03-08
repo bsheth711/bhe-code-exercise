@@ -30,7 +30,7 @@ func For(workUnits int, loopBody func(i, threadId int)) {
 			stop := batchSize * (threadId + 1)
 
 			if threadId == numThreads-1 {
-				stop += workUnits % batchSize
+				stop += workUnits % numThreads
 			}
 
 			for k := start; k < stop; k++ {
